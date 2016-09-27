@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/test/e2e/framework"
+	"os/exec"
 )
 
 const (
@@ -41,6 +42,10 @@ const (
 	// countTo is the number of log lines emitted (and checked) for each synthetic logging pod.
 	countTo = 100
 )
+
+type LogEntry struct {
+	TextPayload string
+}
 
 func bodyToJsonObject(body []byte) (map[string]interface{}, error) {
 	var r map[string]interface{}
@@ -174,4 +179,62 @@ func getHealthyNodes(f *framework.Framework) (nodes *api.NodeList) {
 	framework.Logf("Found %d healthy nodes.", len(nodes.Items))
 
 	return
+}
+
+func writeEventsToGcl(logName string, entry string) error {
+	framework.Logf("Writing entry '%s' to log '%s' in GCL", entry, logName)
+	argList := []string{"beta", "logging", "write", logName, entry}
+	_, err := exec.Command("gcloud", argList...).CombinedOutput()
+	return err
+}
+
+func readFilteredEntriesFromGcl(filter string) ([]*LogEntry, error) {
+	framework.Logf("Reading entries from GCL with filter '%v'", filter)
+	argList := []string{"beta", "logging", "read", filter, "--format", "json"}
+	output, err := exec.Command("gcloud", argList...).CombinedOutput()
+	if err != nil {
+		return nil, err
+	}
+
+	outputStr := string(output)
+	if len(outputStr) > 1024 {
+		outputStr = outputStr[:1021] + "..."
+	}
+	framework.Logf("Combined output starts with: %s", outputStr)
+
+	var jsonArray []interface{}
+	if err = json.Unmarshal(output, &jsonArray); err != nil {
+		return nil, err
+	}
+	framework.Logf("Read %d entries from GCL", len(jsonArray))
+
+	var entries []*LogEntry
+	for i, obj := range jsonArray {
+		jsonObject, ok := obj.(map[string]interface{})
+
+		if !ok {
+			// All elements in returned array are expected to be objects
+			framework.Logf("Element at position %d is not an object", i)
+			continue
+		}
+
+		textPayloadObj, ok := jsonObject["textPayload"]
+		if !ok {
+			// Entry does not contain textPayload field
+			// In this test, we don't deal with jsonPayload or structPayload
+			framework.Logf("Element at position %d does not contain text payload", i)
+			continue
+		}
+
+		textPayload, ok := textPayloadObj.(string)
+		if !ok {
+			// Text payload should be string
+			framework.Logf("Element at position %d has non-string textPayload", i)
+			continue
+		}
+
+		entries = append(entries, &LogEntry{TextPayload: textPayload})
+	}
+
+	return entries, nil
 }
