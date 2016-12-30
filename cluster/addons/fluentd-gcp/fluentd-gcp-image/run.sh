@@ -17,13 +17,15 @@
 # For systems without journald
 mkdir -p /var/log/journal
 
-if [ -e /host/lib/libsystemd* ]
+if [ "`ls /host/lib/libsystemd* 2>/dev/null`" ]
 then
   rm /lib/x86_64-linux-gnu/libsystemd*
   cp /host/lib/libsystemd* /lib/x86_64-linux-gnu/
 fi
 
-LD_PRELOAD=/opt/td-agent/embedded/lib/libjemalloc.so
-RUBY_GC_HEAP_OLDOBJECT_LIMIT_FACTOR=0.9
+export  LD_PRELOAD=/opt/google-fluentd/embedded/lib/libjemalloc.so
+export RUBY_GC_HEAP_OLDOBJECT_LIMIT_FACTOR=0.9
 
-/usr/sbin/td-agent $@
+# sed -i 's/>= 0/< 0.14/' /opt/google-fluentd/embedded/bin/fluentd
+
+/usr/sbin/google-fluentd $@
