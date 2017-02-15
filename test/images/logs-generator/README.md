@@ -41,7 +41,7 @@ gcr.io/google_containers/logs-generator:v0.1.1
 ```
 docker run -i \
   -e "LOGS_GENERATOR_LINES_TOTAL=10" \
-  -e "LOGS_GENERATOR_DURATION=1s" \
+  -e "LOGS_GENERATOR_DURATION=  1s" \
   gcr.io/google_containers/logs-generator:v0.1.1
 ```
 

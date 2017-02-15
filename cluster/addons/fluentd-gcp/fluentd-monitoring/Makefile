@@ -26,11 +26,14 @@
 .PHONY:	build push
 
 PREFIX=gcr.io/google.com/vmik-k8s-testing-0
-TAG = 1.36
+IMAGE_NAME=fluentd-monitoring
+TAG = v0.1.0
 
-build:
-	docker build --pull -t $(PREFIX)/fluentd-gcp:$(TAG) .
+build: binary
+	docker build -t $(PREFIX)/$(IMAGE_NAME):$(TAG) .
 
+binary:
+	go build -a -ldflags "-w" -gcflags "-trimpath '$(shell pwd)'" fluentd_monitoring.go
 
 push:
-	gcloud docker -- push $(PREFIX)/fluentd-gcp:$(TAG)
+	gcloud docker -- push $(PREFIX)/$(IMAGE_NAME):$(TAG)

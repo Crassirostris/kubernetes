@@ -17,8 +17,16 @@ spec:
         version: v1.31
     spec:
       containers:
+      - name: fluentd-monitoring
+        image: gcr.io/google.com/vmik-k8s-testing-0/fluentd-monitoring:v0.1.0
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
       - name: fluentd-gcp
-        image: gcr.io/google_containers/fluentd-gcp:1.32
+        image: gcr.io/google.com/vmik-k8s-testing-0/fluentd-gcp:1.36
         # If fluentd consumes its own logs, the following situation may happen:
         # fluentd fails to send a chunk to the server => writes it to the log =>
         # tries to send this message to the server => fails to send a chunk and so on.
